@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - python=3.8  # Ensure Python 3.8 is explicitly set
   - requests=2.24.0
   - urllib3=1.24.1
   - pip=23.3.1
