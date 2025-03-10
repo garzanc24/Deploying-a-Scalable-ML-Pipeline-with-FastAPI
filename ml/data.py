@@ -1,6 +1,6 @@
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import LabelBinarizer, OneHotEncoder
-
 
 def process_data(
     X, categorical_features=[], label=None, training=True, encoder=None, lb=None
@@ -25,9 +25,9 @@ def process_data(
         for y (default=None)
     training : bool
         Indicator if training mode or inference/validation mode.
-    encoder : sklearn.preprocessing._encoders.OneHotEncoder
+    encoder : sklearn.preprocessing.OneHotEncoder
         Trained sklearn OneHotEncoder, only used if training=False.
-    lb : sklearn.preprocessing._label.LabelBinarizer
+    lb : sklearn.preprocessing.LabelBinarizer
         Trained sklearn LabelBinarizer, only used if training=False.
 
     Returns
@@ -36,42 +36,51 @@ def process_data(
         Processed data.
     y : np.array
         Processed labels if labeled=True, otherwise empty np.array.
-    encoder : sklearn.preprocessing._encoders.OneHotEncoder
+    encoder : sklearn.preprocessing.OneHotEncoder
         Trained OneHotEncoder if training is True, otherwise returns the encoder passed
         in.
-    lb : sklearn.preprocessing._label.LabelBinarizer
+    lb : sklearn.preprocessing.LabelBinarizer
         Trained LabelBinarizer if training is True, otherwise returns the binarizer
         passed in.
     """
 
     if label is not None:
-        y = X[label]
-        X = X.drop([label], axis=1)
+        y = X[label].values  # Convert to NumPy array immediately
+        X = X.drop(columns=[label], axis=1)
     else:
         y = np.array([])
 
-    X_categorical = X[categorical_features].values
-    X_continuous = X.drop(*[categorical_features], axis=1)
+    # Handle categorical features
+    if categorical_features:
+        X_categorical = X[categorical_features].values
+        X_continuous = X.drop(columns=categorical_features, axis=1)
+    else:
+        X_categorical = np.array([])  # Empty array if no categorical features exist
+        X_continuous = X
 
-    if training is True:
+    if training:
         encoder = OneHotEncoder(sparse_output=False, handle_unknown="ignore")
         lb = LabelBinarizer()
-        X_categorical = encoder.fit_transform(X_categorical)
-        y = lb.fit_transform(y.values).ravel()
+        if categorical_features:
+            X_categorical = encoder.fit_transform(X_categorical)
+        y = lb.fit_transform(y).ravel()
     else:
-        X_categorical = encoder.transform(X_categorical)
+        if categorical_features:
+            X_categorical = encoder.transform(X_categorical)
         try:
-            y = lb.transform(y.values).ravel()
-        # Catch the case where y is None because we're doing inference.
+            y = lb.transform(y).ravel()
         except AttributeError:
-            pass
+            pass  # If y is empty during inference
 
-    X = np.concatenate([X_continuous, X_categorical], axis=1)
+    # Merge continuous and categorical data
+    if categorical_features:
+        X = np.concatenate([X_continuous, X_categorical], axis=1)
+    else:
+        X = X_continuous.to_numpy()
+
     return X, y, encoder, lb
 
+
 def apply_label(inference):
-    """ Convert the binary label in a single inference sample into string output."""
-    if inference[0] == 1:
-        return ">50K"
-    elif inference[0] == 0:
-        return "<=50K"
+    """ Convert the binary label in a single inference sample into string output. """
+    return ">50K" if inference[0] == 1 else "<=50K"
