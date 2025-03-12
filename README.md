@@ -21,15 +21,10 @@ This project involves building and deploying a machine learning pipeline using *
 - **conda** – Alternative package and environment manager (used via `environment.yml`).
 - **Docker** *(Optional)* – For containerizing the application.
 - **Virtual Environments**:
-  - **venv** *(for pip-based setup)*
   - **Conda environments** *(for Conda-based setup)*
 
 ### **Deployment & Infrastructure**
 - **Uvicorn** – ASGI server for running FastAPI.
-- **AWS S3** *(Optional)* – Remote storage for data and model artifacts.
-- **Cloud-based Deployment (Future Scope)**:
-  - **Heroku / AWS Lambda / Azure Functions** *(for API deployment)*
-  - **Kubernetes / Docker Swarm** *(for scaling the application)*
 
 ---
 
