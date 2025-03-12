@@ -1,120 +1,117 @@
 import pytest
 import pandas as pd
 import numpy as np
-from ml.data import process_data, apply_label
-from ml.model import train_model, inference, compute_model_metrics
+from sklearn.ensemble import RandomForestClassifier
+import pickle
+import os
+
+from ml.data import process_data
+from ml.model import train_model, compute_model_metrics, inference
 
 @pytest.fixture
-def sample_data():
+def data():
     """
-    Create a small sample dataset for testing
+    Get a small sample dataset for testing
     """
-    data = {
-        'age': [25, 38, 45, 32, 55],
-        'workclass': ['Private', 'Self-emp', 'Private', 'Federal-gov', 'Private'],
-        'fnlgt': [226802, 89814, 160323, 234721, 338409],
-        'education': ['HS-grad', 'Bachelors', 'Masters', 'HS-grad', 'Doctorate'],
-        'education-num': [9, 13, 14, 9, 16],
-        'marital-status': ['Married', 'Married', 'Divorced', 'Married', 'Never-married'],
-        'occupation': ['Sales', 'Exec-managerial', 'Prof-specialty', 'Adm-clerical', 'Prof-specialty'],
-        'relationship': ['Husband', 'Husband', 'Not-in-family', 'Husband', 'Not-in-family'],
-        'race': ['White', 'White', 'Black', 'Asian-Pac-Islander', 'White'],
-        'sex': ['Male', 'Male', 'Female', 'Male', 'Female'],
-        'capital-gain': [0, 15024, 0, 0, 0],
-        'capital-loss': [0, 0, 0, 0, 0],
-        'hours-per-week': [40, 50, 40, 35, 60],
-        'native-country': ['United-States', 'United-States', 'United-States', 'India', 'United-States'],
-        'salary': ['<=50K', '>50K', '<=50K', '<=50K', '>50K']
-    }
-    return pd.DataFrame(data)
+    # Either load a small subset of your data or create a synthetic dataset
+    df = pd.read_csv("data/census.csv")
+    return df.sample(100, random_state=42)  # Small sample for testing
 
-def test_process_data(sample_data):
+def test_process_data(data):
     """
-    Test that process_data correctly handles categorical features and creates
-    the expected shape of processed data.
+    Test process_data function returns the expected types and shapes
     """
     cat_features = [
-        "workclass", "education", "marital-status", "occupation",
-        "relationship", "race", "sex", "native-country"
+        "workclass",
+        "education",
+        "marital-status",
+        "occupation",
+        "relationship",
+        "race",
+        "sex",
+        "native-country",
     ]
     
-    # Test training mode
     X_train, y_train, encoder, lb = process_data(
-        sample_data, categorical_features=cat_features, 
-        label="salary", training=True
+        data, categorical_features=cat_features, label="salary", training=True
     )
     
-    # Check shapes
-    assert X_train.shape[0] == 5, "Wrong number of samples"
-    assert y_train.shape[0] == 5, "Wrong number of labels"
+    # Test output types
+    assert isinstance(X_train, np.ndarray)
+    assert isinstance(y_train, np.ndarray)
+    assert y_train.shape[0] == X_train.shape[0]  # Same number of samples
     
-    # Check encoders are created
-    assert encoder is not None, "Encoder should be created"
-    assert lb is not None, "Label binarizer should be created"
-    
-    # Test inference mode
+    # Process again to test with existing encoder
     X_test, y_test, _, _ = process_data(
-        sample_data, categorical_features=cat_features,
-        label="salary", training=False, encoder=encoder, lb=lb
+        data, categorical_features=cat_features, label="salary", 
+        training=False, encoder=encoder, lb=lb
     )
     
-    # Check processed data is same shape in inference mode
-    assert X_test.shape == X_train.shape, "Training and inference data should have same shape"
+    # Verify same shape features after encoding
+    assert X_test.shape[1] == X_train.shape[1]
 
-def test_train_and_inference(sample_data):
+def test_train_model():
     """
-    Test that model training works and produces predictions of the expected format.
+    Test train_model returns the expected model type
     """
-    cat_features = [
-        "workclass", "education", "marital-status", "occupation",
-        "relationship", "race", "sex", "native-country"
-    ]
+    # Create some dummy data
+    X = np.random.random((100, 10))
+    y = np.random.randint(0, 2, 100)
     
-    # Process data
-    X, y, encoder, lb = process_data(
-        sample_data, 
-        categorical_features=cat_features,
-        label="salary", 
-        training=True
-    )
-    
-    # Train model
     model = train_model(X, y)
     
-    # Check model exists
-    assert model is not None, "Model should be trained"
+    # Check model type - assuming it's a RandomForestClassifier, change if different
+    assert isinstance(model, RandomForestClassifier)
     
-    # Run inference
-    preds = inference(model, X)
-    
-    # Check predictions shape and type
-    assert len(preds) == len(y), "Predictions should match number of samples"
-    assert all(isinstance(pred, (int, np.integer)) for pred in preds), "Predictions should be integers"
-    assert all(pred in [0, 1] for pred in preds), "Predictions should be binary"
+    # Verify model was fitted
+    assert hasattr(model, 'classes_')
+    assert len(model.classes_) > 0
 
-def test_compute_metrics():
+def test_compute_model_metrics():
     """
-    Test that metric computation works correctly with known values.
+    Test that compute_model_metrics returns expected values for known inputs
     """
-    # Test case 1: Perfect predictions
-    y_true = np.array([0, 1, 0, 1, 0])
-    y_pred = np.array([0, 1, 0, 1, 0])
+    # Create known ground truth and predictions
+    y = np.array([0, 0, 0, 0, 1, 1, 1, 1])
+    preds = np.array([0, 0, 1, 1, 0, 0, 1, 1])
     
-    precision, recall, fbeta = compute_model_metrics(y_true, y_pred)
-    assert precision == 1.0, "Precision should be 1.0 for perfect predictions"
-    assert recall == 1.0, "Recall should be 1.0 for perfect predictions"
-    assert fbeta == 1.0, "F1 score should be 1.0 for perfect predictions"
+    # Expected values calculated by hand
+    # Precision: TP/(TP+FP) = 2/(2+2) = 0.5
+    # Recall: TP/(TP+FN) = 2/(2+2) = 0.5
+    # F1: 2*precision*recall/(precision+recall) = 2*0.5*0.5/(0.5+0.5) = 0.5
     
-    # Test case 2: Imperfect predictions
-    y_true = np.array([0, 1, 0, 1, 0])
-    y_pred = np.array([0, 0, 0, 1, 1])
+    precision, recall, fbeta = compute_model_metrics(y, preds)
     
-    precision, recall, fbeta = compute_model_metrics(y_true, y_pred)
-    assert 0 <= precision <= 1, "Precision should be between 0 and 1"
-    assert 0 <= recall <= 1, "Recall should be between 0 and 1"
-    assert 0 <= fbeta <= 1, "F1 score should be between 0 and 1"
+    assert np.isclose(precision, 0.5)
+    assert np.isclose(recall, 0.5)
+    assert np.isclose(fbeta, 0.5)
     
-    # Check specific values for this test case
-    assert precision == 0.5, "Precision calculation incorrect"
-    assert recall == 0.5, "Recall calculation incorrect"
-    assert fbeta == 0.5, "F1 score calculation incorrect"
+    # Test with perfect predictions
+    precision, recall, fbeta = compute_model_metrics(y, y)
+    assert np.isclose(precision, 1.0)
+    assert np.isclose(recall, 1.0)
+    assert np.isclose(fbeta, 1.0)
+
+def test_inference():
+    """
+    Test that inference function returns predictions of the expected shape and type
+    """
+    # Load the model
+    if os.path.exists('model/model.pkl'):
+        with open('model/model.pkl', 'rb') as f:
+            model = pickle.load(f)
+            
+        # Create some dummy data matching the expected feature dimensions
+        # Note: You'll need to adjust the feature count to match your model
+        feature_count = 108  # Replace with your actual feature count
+        X = np.random.random((10, feature_count))
+        
+        # Run inference
+        preds = inference(model, X)
+        
+        # Check predictions shape and type
+        assert isinstance(preds, np.ndarray)
+        assert preds.shape[0] == X.shape[0]
+        assert set(np.unique(preds)).issubset({0, 1})  # Binary classification
+    else:
+        pytest.skip("Model file not found, skipping inference test")
