@@ -1,48 +1,68 @@
-# Model Card
+# Model Card  
 
-## Model Details
-* Developed by: Jennifer Garza
-* Model date: 3/12/2025
-* Model version: 1.0
-* Model type: 
-* Features: Demographic data including workclass, education, marital-status, occupation, relationship, race, sex, native-country, and numeric features.
+## Model Details  
+- **Developed by:** Jennifer Garza  
+- **Model date:** March 12, 2025  
+- **Model version:** 1.0  
+- **Model type:** Binary Classification (Predicting income level)  
+- **Features:**  
+  - **Categorical:** workclass, education, marital-status, occupation, relationship, race, sex, native-country  
+  - **Numerical:** Age, hours per week, and other continuous variables  
+
+## Intended Use  
+- **Primary Intended Uses:**  
+  - Predict whether an individual earns more than $50K/year based on demographic and socioeconomic factors.  
+  - Assist researchers and analysts in studying income distribution and socioeconomic factors.  
+- **Primary Intended Users:**  
+  - Data scientists, economists, and policymakers analyzing income trends.  
+- **Out-of-Scope Uses:**  
+  - Any use that could lead to discriminatory decisions or reinforce biases based on protected attributes.  
+  - Automated decision-making in hiring, lending, or other high-stakes applications without fairness mitigations.  
+
+## Training Data  
+- **Source:** UCI Census Income dataset  
+- **Training Data Split:** 80% of the dataset for training  
+- **Preprocessing:**  
+  - Categorical variables encoded using one-hot encoding  
+  - Target variable binarized (income ≤50K vs. >50K)  
+  - Standardization applied to numerical features  
+
+## Evaluation Data  
+- **Source:** 20% of the UCI Census Income dataset  
+- **Preprocessing:** Identical to training data  
+
+## Model Performance  
+- **Evaluation Metrics:**  
+  - **Precision:** 0.7962  
+  - **Recall:** 0.5372  
+  - **F1 Score:** 0.6416  
+- **Interpretation:**  
+  - The model has high precision but lower recall, meaning it minimizes false positives but may fail to identify all high-income individuals.  
+  - The imbalance between precision and recall suggests the model may underpredict income >$50K in certain cases.  
+
+## Ethical Considerations  
+- **Performance disparities across demographic groups:**  
+  - **Education level:** The model performs better for individuals with higher education.  
+  - **Gender:** Higher accuracy for male samples compared to female.  
+  - **Occupation:** Higher-income occupations have better predictions.  
+- **Risk of reinforcing socioeconomic inequalities:**  
+  - Without intervention, the model could contribute to biased decisions if used in hiring, lending, or other financial assessments.  
+- **Mitigation Strategies:**  
+  - Conduct fairness analysis and apply bias mitigation techniques (e.g., reweighting, adversarial debiasing).  
+  - Use fairness-aware post-processing to adjust predictions.  
+  - Deploy in a human-in-the-loop system rather than full automation.  
+
+## Caveats and Recommendations  
+- **Potential Biases:**  
+  - Biases related to gender, education, and occupation may lead to unfair outcomes.  
+  - Small sample sizes for certain demographic groups could result in unreliable predictions.  
+  - The dataset is based on historical census data, which may not reflect current trends.  
+- **Recommendations for Improvement:**  
+  - **Fairness Constraints:** Implement fairness-aware constraints during training.  
+  - **Data Collection:** Gather more representative data for underrepresented groups.  
+  - **Continuous Monitoring:** Regularly retrain and validate the model with updated data.  
+  - **Human Oversight:** Use model predictions to assist decision-making rather than automate critical processes.  
 
 
-## Intended Use
-* Primary intended uses: Predict whether income exceeds $50K/year based on census data.
-* Primary intended users: Researchers and analysts studying socioeconomic factors.
-* Out-of-scope uses: Any use that could lead to discriminatory decisions or practices based on protected attributes.
 
-## Training Data
-* Source: UCI Census Income dataset
-* Training data split: 80% of the original dataset
-* Preprocessing: Categorical features encoded using one-hot encoding, label binarized for the salary target.
-
-## Evaluation Data
-* Source: 20% of the original UCI Census Income dataset
-* Preprocessing: Identical to training data
-
-## Metrics
-* Model performance measures:
-  * Precision: 0.7962
-  * Recall: 0.5372
-  * F1 Score: 0.6416
-* The model has higher precision than recall, meaning it's more likely to miss positive cases than to incorrectly classify negative ones.
-
-## Ethical Considerations
-* Significant performance disparities exist across different demographic groups:
-  * Education level shows major disparities, with better performance for those with higher education
-  * Gender disparity exists, with better performance on male samples than female
-  * Occupation shows significant variance, with better performance on higher-income occupations
-* These disparities could reinforce existing socioeconomic inequalities if the model is used for decision-making without acknowledging these limitations.
-* Further fairness analysis and mitigation strategies are recommended before deployment.
-
-## Caveats and Recommendations
-* The model shows signs of bias particularly related to education level, gender, and occupation.
-* Small sample sizes for some feature values (e.g., certain countries of origin) may lead to unreliable metrics.
-* The dataset is based on census data which may not reflect current demographic and economic conditions.
-* Consider:
-  * Implementing fairness constraints or post-processing techniques to mitigate bias
-  * Collecting more representative data for underrepresented groups
-  * Using this model as part of a human-in-the-loop system rather than for automated decisions
-  * Regularly retraining the model with updated data
+This version improves clarity, highlights risks, and provides actionable recommendations. Let me know if you need modifications! 🚀
