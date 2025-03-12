@@ -82,52 +82,50 @@ def load_model(path):
     with open(path, 'rb') as f:
         return pickle.load(f)
 
-def performance_on_categorical_slice(
-    data, column_name, slice_value, categorical_features, label, encoder, lb, model
-):
-    """ Computes the model metrics on a slice of the data specified by a column name and value.
-    Inputs
-    ------
-    data : pd.DataFrame
-        Dataframe containing the features and label. Columns in `categorical_features`
-    column_name : str
-        Column containing the sliced feature.
-    slice_value : str, int, float
-        Value of the slice feature.
-    categorical_features: list
-        List containing the names of the categorical features (default=[])
-    label : str
-        Name of the label column in `X`. If None, then an empty array will be returned
-        for y (default=None)
-    encoder : sklearn.preprocessing._encoders.OneHotEncoder
-        Trained sklearn OneHotEncoder, only used if training=False.
-    lb : sklearn.preprocessing._label.LabelBinarizer
-        Trained sklearn LabelBinarizer, only used if training=False.
-    model : RandomForestClassifier
-        Model used for the task.
-    Returns
-    -------
-    precision : float
-    recall : float
-    fbeta : float
+def performance_on_categorical_slice(data, model, encoder, lb, slice_feature, cat_features):
     """
-    # Filter data for the specific slice
-    slice_data = data[data[column_name] == slice_value]
+    Compute performance metrics on slices of the data based on categorical features.
     
-    # Process the sliced data
-    X_slice, y_slice, _, _ = process_data(
-        slice_data,
-        categorical_features=categorical_features,
-        label=label,
-        training=False,
-        encoder=encoder,
-        lb=lb
-    )
+    Inputs:
+    - data: Pandas DataFrame containing the data
+    - model: Trained machine learning model
+    - encoder: Trained OneHotEncoder
+    - lb: Trained LabelBinarizer
+    - slice_feature: Feature to slice on
+    - cat_features: List of categorical features
     
-    # Get predictions
-    preds = inference(model, X_slice)
+    Returns:
+    - Dictionary with metrics for each unique value in the slice feature
+    """
+    slice_metrics = {}
     
-    # Compute metrics
-    precision, recall, fbeta = compute_model_metrics(y_slice, preds)
+    # Get unique values for the slice feature
+    unique_values = data[slice_feature].unique()
     
-    return precision, recall, fbeta
+    for value in unique_values:
+        # Filter data for this slice value
+        slice_data = data[data[slice_feature] == value]
+        
+        if len(slice_data) == 0:
+            continue
+        
+        # Process slice data
+        X_slice, y_slice, _, _ = process_data(
+            slice_data, 
+            categorical_features=cat_features, 
+            label="salary", 
+            training=False,
+            encoder=encoder, 
+            lb=lb
+        )
+        
+        # Get predictions on slice
+        preds = inference(model, X_slice)
+        
+        # Calculate metrics
+        precision, recall, fbeta = compute_model_metrics(y_slice, preds)
+        
+        # Store metrics
+        slice_metrics[value] = (precision, recall, fbeta)
+    
+    return slice_metrics

@@ -1,12 +1,18 @@
+# Script to train machine learning model.
 import pandas as pd
-import os
+import pickle
+from sklearn.model_selection import train_test_split
+
+# Add the necessary imports for the starter code.
 from ml.data import process_data
-from ml.model import train_model, compute_model_metrics, save_model, inference
+from ml.model import train_model, inference, compute_model_metrics, performance_on_categorical_slice
 
-# Load the data
-data = pd.read_csv("data/clean_census.csv")
+# Add code to load in the data.
+data = pd.read_csv("data/census.csv")
 
-# Define categorical features
+# Optional enhancement, use K-fold cross validation instead of a train-test split.
+train, test = train_test_split(data, test_size=0.20, random_state=42)
+
 cat_features = [
     "workclass",
     "education",
@@ -18,31 +24,57 @@ cat_features = [
     "native-country",
 ]
 
-# Process the data
+# Process the train data with the process_data function.
 X_train, y_train, encoder, lb = process_data(
-    data,
-    categorical_features=cat_features,
-    label="salary",
-    training=True
+    train, categorical_features=cat_features, label="salary", training=True
 )
 
-# Train the model
+# Process the test data with the process_data function.
+X_test, y_test, _, _ = process_data(
+    test, categorical_features=cat_features, label="salary", training=False,
+    encoder=encoder, lb=lb
+)
+
+# Train and save a model.
 model = train_model(X_train, y_train)
 
-# Get model predictions
-preds = inference(model, X_train)
+# Save the model and encoder
+with open('model/model.pkl', 'wb') as f:
+    pickle.dump(model, f)
+    print("Model saved to model/model.pkl")
+
+with open('model/encoder.pkl', 'wb') as f:
+    pickle.dump((encoder, lb), f)
+    print("Model saved to model/encoder.pkl")
+
+# Load model for inference
+with open('model/model.pkl', 'rb') as f:
+    model = pickle.load(f)
+    print("Loading model from model/model.pkl")
+
+# Run inference on test data
+preds = inference(model, X_test)
 
 # Compute metrics
-precision, recall, fbeta = compute_model_metrics(y_train, preds)
-print(f"Model performance on training data:")
-print(f"Precision: {precision:.4f}")
-print(f"Recall: {recall:.4f}")
-print(f"F1 score: {fbeta:.4f}")
+precision, recall, fbeta = compute_model_metrics(y_test, preds)
+print(f"Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {fbeta:.4f}")
 
-# Save the model and encoders
-os.makedirs("model", exist_ok=True)
-save_model(model, "model/model.pkl")
-save_model(encoder, "model/encoder.pkl")
-save_model(lb, "model/lb.pkl")
-
-print("Model, encoder, and label binarizer saved to model/ directory")
+# Compute and save performance on slices
+with open('slice_output.txt', 'w') as f:
+    f.write(f"Overall Metrics\n")
+    f.write(f"Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {fbeta:.4f}\n\n")
+    
+    # For each categorical feature, compute performance on slices
+    for feature in cat_features:
+        f.write(f"Performance on {feature} slices:\n")
+        slice_metrics = performance_on_categorical_slice(
+            test, model, encoder, lb, feature, cat_features
+        )
+        
+        for value, metrics in slice_metrics.items():
+            value_count = test[test[feature] == value].shape[0]
+            precision, recall, fbeta = metrics
+            f.write(f"{feature}: {value}, Count: {value_count}\n")
+            f.write(f"Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {fbeta:.4f}\n")
+        
+        f.write("\n")  # Add an empty line between features
