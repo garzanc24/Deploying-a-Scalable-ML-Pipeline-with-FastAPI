@@ -176,4 +176,9 @@ pyrightconfig.json
 # FastAPI setup
 fastapi/
 
+# DVC
+/data/*.csv
+# /data/*.csv.dvc
+.dvc/cache
+
 # End of https://www.toptal.com/developers/gitignore/api/python

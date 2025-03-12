@@ -1,13 +1,11 @@
 import pickle
 from sklearn.metrics import fbeta_score, precision_score, recall_score
+from sklearn.ensemble import RandomForestClassifier
 from ml.data import process_data
-# TODO: add necessary import
 
-# Optional: implement hyperparameter tuning.
 def train_model(X_train, y_train):
     """
     Trains a machine learning model and returns it.
-
     Inputs
     ------
     X_train : np.array
@@ -19,14 +17,22 @@ def train_model(X_train, y_train):
     model
         Trained machine learning model.
     """
-    # TODO: implement the function
-    pass
-
+    # Initialize Random Forest Classifier
+    model = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=10,
+        random_state=42,
+        n_jobs=-1
+    )
+    
+    # Train the model
+    model.fit(X_train, y_train)
+    
+    return model
 
 def compute_model_metrics(y, preds):
     """
     Validates the trained machine learning model using precision, recall, and F1.
-
     Inputs
     ------
     y : np.array
@@ -44,13 +50,11 @@ def compute_model_metrics(y, preds):
     recall = recall_score(y, preds, zero_division=1)
     return precision, recall, fbeta
 
-
 def inference(model, X):
     """ Run model inferences and return the predictions.
-
     Inputs
     ------
-    model : ???
+    model : RandomForestClassifier
         Trained machine learning model.
     X : np.array
         Data used for prediction.
@@ -59,12 +63,10 @@ def inference(model, X):
     preds : np.array
         Predictions from the model.
     """
-    # TODO: implement the function
-    pass
+    return model.predict(X)
 
 def save_model(model, path):
     """ Serializes model to a file.
-
     Inputs
     ------
     model
@@ -72,24 +74,18 @@ def save_model(model, path):
     path : str
         Path to save pickle file.
     """
-    # TODO: implement the function
-    pass
+    with open(path, 'wb') as f:
+        pickle.dump(model, f)
 
 def load_model(path):
     """ Loads pickle file from `path` and returns it."""
-    # TODO: implement the function
-    pass
-
+    with open(path, 'rb') as f:
+        return pickle.load(f)
 
 def performance_on_categorical_slice(
     data, column_name, slice_value, categorical_features, label, encoder, lb, model
 ):
-    """ Computes the model metrics on a slice of the data specified by a column name and
-
-    Processes the data using one hot encoding for the categorical features and a
-    label binarizer for the labels. This can be used in either training or
-    inference/validation.
-
+    """ Computes the model metrics on a slice of the data specified by a column name and value.
     Inputs
     ------
     data : pd.DataFrame
@@ -107,22 +103,31 @@ def performance_on_categorical_slice(
         Trained sklearn OneHotEncoder, only used if training=False.
     lb : sklearn.preprocessing._label.LabelBinarizer
         Trained sklearn LabelBinarizer, only used if training=False.
-    model : ???
+    model : RandomForestClassifier
         Model used for the task.
-
     Returns
     -------
     precision : float
     recall : float
     fbeta : float
-
     """
-    # TODO: implement the function
+    # Filter data for the specific slice
+    slice_data = data[data[column_name] == slice_value]
+    
+    # Process the sliced data
     X_slice, y_slice, _, _ = process_data(
-        # your code here
-        # for input data, use data in column given as "column_name", with the slice_value 
-        # use training = False
+        slice_data,
+        categorical_features=categorical_features,
+        label=label,
+        training=False,
+        encoder=encoder,
+        lb=lb
     )
-    preds = None # your code here to get prediction on X_slice using the inference function
+    
+    # Get predictions
+    preds = inference(model, X_slice)
+    
+    # Compute metrics
     precision, recall, fbeta = compute_model_metrics(y_slice, preds)
+    
     return precision, recall, fbeta
