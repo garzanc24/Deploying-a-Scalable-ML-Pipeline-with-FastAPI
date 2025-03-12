@@ -1,17 +1,15 @@
+import requests
 import json
 
-import requests
+# URL for the API (local)
+base_url = "http://localhost:8000"
 
-# TODO: send a GET using the URL http://127.0.0.1:8000
-r = None # Your code here
+# Test the GET endpoint
+response = requests.get(f"{base_url}/")
+print(f"Status Code: {response.status_code}")
+print(f"Result: {response.json().get('greeting')}")
 
-# TODO: print the status code
-# print()
-# TODO: print the welcome message
-# print()
-
-
-
+# Sample data for prediction
 data = {
     "age": 37,
     "workclass": "Private",
@@ -26,13 +24,10 @@ data = {
     "capital-gain": 0,
     "capital-loss": 0,
     "hours-per-week": 40,
-    "native-country": "United-States",
+    "native-country": "United-States"
 }
 
-# TODO: send a POST using the data above
-r = None # Your code here
-
-# TODO: print the status code
-# print()
-# TODO: print the result
-# print()
+# Test the POST endpoint
+response = requests.post(f"{base_url}/data/", json=data)
+print(f"Status Code: {response.status_code}")
+print(f"Result: {response.json().get('result')}")

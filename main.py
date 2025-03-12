@@ -1,13 +1,25 @@
 import os
-
+import pickle
 import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-from ml.data import apply_label, process_data
-from ml.model import inference, load_model
+# Import your custom modules
+from ml.model import load_model, inference, apply_label
+from ml.data import process_data
 
-# DO NOT MODIFY
+# Load the encoder and model at startup
+encoder_path = "model/encoder.pkl"
+model_path = "model/model.pkl"
+
+# Load encoder and label binarizer
+with open(encoder_path, 'rb') as f:
+    encoder, lb = pickle.load(f)
+
+# Load model
+model = load_model(model_path)
+
+# Define the data model for input validation
 class Data(BaseModel):
     age: int = Field(..., example=37)
     workclass: str = Field(..., example="Private")
@@ -26,49 +38,48 @@ class Data(BaseModel):
     hours_per_week: int = Field(..., example=40, alias="hours-per-week")
     native_country: str = Field(..., example="United-States", alias="native-country")
 
-path = None # TODO: enter the path for the saved encoder 
-encoder = load_model(path)
+# Initialize FastAPI app
+app = FastAPI(
+    title="Census Income Prediction API",
+    description="Predicts whether income exceeds $50K/yr based on census data",
+    version="1.0.0"
+)
 
-path = None # TODO: enter the path for the saved model 
-model = load_model(path)
+# Define categorical features
+CAT_FEATURES = [
+    "workclass", "education", "marital-status", "occupation", 
+    "relationship", "race", "sex", "native-country"
+]
 
-# TODO: create a RESTful API using FastAPI
-app = None # your code here
-
-# TODO: create a GET on the root giving a welcome message
+# Root endpoint
 @app.get("/")
 async def get_root():
-    """ Say hello!"""
-    # your code here
-    pass
+    """ Welcome endpoint """
+    return {"greeting": "Welcome to the Census Income Prediction API!"}
 
-
-# TODO: create a POST on a different path that does model inference
+# Prediction endpoint
 @app.post("/data/")
 async def post_inference(data: Data):
-    # DO NOT MODIFY: turn the Pydantic model into a dict.
-    data_dict = data.dict()
-    # DO NOT MODIFY: clean up the dict to turn it into a Pandas DataFrame.
-    # The data has names with hyphens and Python does not allow those as variable names.
-    # Here it uses the functionality of FastAPI/Pydantic/etc to deal with this.
-    data = {k.replace("_", "-"): [v] for k, v in data_dict.items()}
-    data = pd.DataFrame.from_dict(data)
-
-    cat_features = [
-        "workclass",
-        "education",
-        "marital-status",
-        "occupation",
-        "relationship",
-        "race",
-        "sex",
-        "native-country",
-    ]
-    data_processed, _, _, _ = process_data(
-        # your code here
-        # use data as data input
-        # use training = False
-        # do not need to pass lb as input
+    """ Predict income based on input data """
+    # Convert Pydantic model to dictionary
+    data_dict = data.dict(by_alias=True)
+    
+    # Convert to DataFrame
+    data = pd.DataFrame.from_dict({k: [v] for k, v in data_dict.items()})
+    
+    # Process the data
+    X_processed, _, _, _ = process_data(
+        data, 
+        categorical_features=CAT_FEATURES, 
+        training=False, 
+        encoder=encoder,
+        lb=lb
     )
-    _inference = None # your code here to predict the result using data_processed
-    return {"result": apply_label(_inference)}
+    
+    # Run inference
+    prediction = inference(model, X_processed)
+    
+    # Apply label
+    result = apply_label(prediction)
+    
+    return {"result": result}

@@ -1,7 +1,6 @@
 import pickle
 from sklearn.metrics import fbeta_score, precision_score, recall_score
 from sklearn.ensemble import RandomForestClassifier
-from ml.data import process_data
 
 def train_model(X_train, y_train):
     """
@@ -82,6 +81,13 @@ def load_model(path):
     with open(path, 'rb') as f:
         return pickle.load(f)
 
+def apply_label(inference):
+    """ Convert the binary label in a single inference sample into string output."""
+    if inference[0] == 1:
+        return ">50K"
+    elif inference[0] == 0:
+        return "<=50K"
+
 def performance_on_categorical_slice(data, model, encoder, lb, slice_feature, cat_features):
     """
     Compute performance metrics on slices of the data based on categorical features.
@@ -97,6 +103,8 @@ def performance_on_categorical_slice(data, model, encoder, lb, slice_feature, ca
     Returns:
     - Dictionary with metrics for each unique value in the slice feature
     """
+    from ml.data import process_data  # Import here to avoid circular import
+    
     slice_metrics = {}
     
     # Get unique values for the slice feature
@@ -110,7 +118,7 @@ def performance_on_categorical_slice(data, model, encoder, lb, slice_feature, ca
             continue
         
         # Process slice data
-        X_slice, y_slice, _, _ = process_data(
+        processed_data = process_data(
             slice_data, 
             categorical_features=cat_features, 
             label="salary", 
@@ -118,6 +126,9 @@ def performance_on_categorical_slice(data, model, encoder, lb, slice_feature, ca
             encoder=encoder, 
             lb=lb
         )
+        
+        # Unpack the processed data
+        X_slice, y_slice, _, _ = processed_data
         
         # Get predictions on slice
         preds = inference(model, X_slice)

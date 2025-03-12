@@ -11,9 +11,6 @@ def process_data(
     label binarizer for the labels. This can be used in either training or
     inference/validation.
 
-    Note: depending on the type of model used, you may want to add in functionality that
-    scales the continuous data.
-
     Inputs
     ------
     X : pd.DataFrame
@@ -59,19 +56,16 @@ def process_data(
         X_categorical = encoder.fit_transform(X_categorical)
         y = lb.fit_transform(y.values).ravel()
     else:
+        # Ensure encoder and lb are not None
+        if encoder is None or lb is None:
+            raise ValueError("Encoder and LabelBinarizer must be provided when training=False")
+        
+        # Transform categorical features
         X_categorical = encoder.transform(X_categorical)
-        try:
+        
+        # Only transform y if it's not empty
+        if len(y) > 0:
             y = lb.transform(y.values).ravel()
-        # Catch the case where y is None because we're doing inference.
-        except AttributeError:
-            pass
 
     X = np.concatenate([X_continuous, X_categorical], axis=1)
     return X, y, encoder, lb
-
-def apply_label(inference):
-    """ Convert the binary label in a single inference sample into string output."""
-    if inference[0] == 1:
-        return ">50K"
-    elif inference[0] == 0:
-        return "<=50K"

@@ -8,8 +8,8 @@ import pickle
 sys.path.append(os.getcwd())
 
 # Import your custom modules
-from ml.model import load_model, inference
-from ml.data import process_data, apply_label
+from ml.model import load_model, inference, apply_label
+from ml.data import process_data
 
 def check_model_loading():
     # Check encoder path
@@ -25,6 +25,10 @@ def check_model_loading():
         print("\nInspecting encoder file:")
         with open(encoder_path, 'rb') as f:
             encoder_tuple = pickle.load(f)
+        
+        # Ensure we have a tuple
+        if not isinstance(encoder_tuple, tuple):
+            raise ValueError("Encoder file does not contain a tuple")
         
         # Unpack the tuple
         encoder, lb = encoder_tuple
@@ -66,13 +70,17 @@ def check_model_loading():
         print("Has transform method:", hasattr(encoder, 'transform'))
         
         # Process the data
-        X_processed, _, processed_encoder, processed_lb = process_data(
+        # Modify the process_data call to explicitly pass encoder and lb
+        processed_data = process_data(
             sample_df, 
             categorical_features=cat_features, 
             training=False, 
             encoder=encoder,
             lb=lb
         )
+
+        # Unpack the processed data
+        X_processed, _, processed_encoder, processed_lb = processed_data
 
         print("Data processed successfully.")
         print(f"Processed data shape: {X_processed.shape}")
